@@ -1,0 +1,74 @@
+﻿@page "/"
+
+<button @onclick="GetDevices">Enumerate Media Devices</button>
+<br />
+<br />
+
+<h2>@DeviceStatus</h2>
+<br />
+
+@if (AudioInputDevices.Count > 0)
+{
+    <h3>Audio Input Devices</h3>
+    <select>
+        @foreach (var device in AudioInputDevices)
+        {
+            <option>@device.label</option>
+        }
+    </select>
+    <br />
+    <br />
+}
+
+@if (AudioOutputDevices.Count > 0)
+{
+    <h3>Audio Output Devices</h3>
+    <select>
+        @foreach (var device in AudioOutputDevices)
+        {
+            <option>@device.label</option>
+        }
+    </select>
+    <br />
+    <br />
+}
+
+@if (VideoInputDevices.Count > 0)
+{
+    <h3>Video Input Devices</h3>
+    <select>
+        @foreach (var device in VideoInputDevices)
+        {
+            <option>@device.label</option>
+        }
+    </select>
+    <br />
+    <br />
+}
+
+
+<MediaDeviceEnumerator @ref="MediaDeviceEnumerator"
+                       AudioInputDevices="AudioInputDevices"
+                       AudioOutputDevices="AudioOutputDevices"
+                       VideoInputDevices="VideoInputDevices"
+                       StatusChanged="DeviceStatusChanged" />
+
+@code
+{
+    MediaDeviceEnumerator MediaDeviceEnumerator;
+    List<BrowserMediaDevice> AudioInputDevices { get; set; } = new List<BrowserMediaDevice>();
+    List<BrowserMediaDevice> AudioOutputDevices { get; set; } = new List<BrowserMediaDevice>();
+    List<BrowserMediaDevice> VideoInputDevices { get; set; } = new List<BrowserMediaDevice>();
+    string DeviceStatus = "";
+
+    async Task DeviceStatusChanged(string Status)
+    {
+        DeviceStatus = Status;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task GetDevices()
+    {
+        await MediaDeviceEnumerator.EnumerateDevices();
+    }
+}

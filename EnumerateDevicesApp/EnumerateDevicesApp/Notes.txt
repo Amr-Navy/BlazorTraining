@@ -1,0 +1,39 @@
+﻿Create Nuget Package:
+
+*) Set output mode to Release
+*) Open Package tab in Properties for Razor Class Library
+*) Select "Generate NuGet Package on Build"
+*) Make Package Id unique in the world. IE: AppvNextBlazorMediaDeviceLib
+*) Set values for Authors, Company, Product, Description, and Copyright (at minimum)
+*) Rebuild. 
+
+Get Nuget API Key
+
+*) Create an account at nuget.org
+*) Go to https://www.nuget.org/account/apikeys
+*) Create a new API Key
+*) Set Key Name to Package Name (easiest)
+*) Set Glob Pattern to * (easiest)
+*) Select Create button
+*) Copy Key value into clipboard, paste in temporary notepad file
+
+Publish Package to NuGet:
+
+*) Open Command Prompt
+*) Navigate to Razor Class Library Project folder
+*) Navigate to bin\Release folder
+*) Get directory contents (dir command)
+*) Copy the name of the package, paste in temporary notepad file
+*) Execute Command to publish:
+   dotnet nuget push <packageName> --api-key <apiKey> --source https://api.nuget.org/v3/index.json
+
+Verify:
+*) Navigate to https://www.nuget.org/account/Packages
+*) After your package publishes, it will show up under 'Published Packages'. Could take up to an hour.
+*) Copy NuGet command.
+
+Use NuGet Package in New Project
+*) Execute Package Install command in Package Manager Console
+*) Add resources to index.html (or _Host.cshtml for Blazor Server)
+*) Add Namespace to _Imports.razor
+*) Have at it!
