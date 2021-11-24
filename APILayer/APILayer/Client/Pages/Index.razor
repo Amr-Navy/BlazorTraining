@@ -1,0 +1,84 @@
+﻿@page "/"
+@inject IEpisodeDataManager EpisodeManager
+
+@if (Episodes == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <h1>Episodes:</h1>
+    <button @onclick="AddEpisodeButtonClicked">Add Episode</button>
+    <span>&nbsp;</span>
+    <button @onclick="UpdateButtonPressed">Update First Episode</button>
+    <span>&nbsp;</span>
+    <button @onclick="DeleteButtonPressed">Delete Last Episode</button>
+    <br />
+    <br />
+    <ul>
+        @foreach (var episode in Episodes)
+        {
+            <li>@episode.Title</li>
+        }
+    </ul>
+}
+
+@code{
+
+    List<Episode> Episodes;
+    async Task DeleteButtonPressed()
+    {
+        if (Episodes != null && Episodes.Count > 0)
+        {
+            var Episode = Episodes.Last();
+
+            await EpisodeManager.DeleteEpisode(Episode.Title);
+            await LoadEpisodes();
+        }
+    }
+
+    async Task UpdateButtonPressed()
+    {
+        if (Episodes != null && Episodes.Count > 0)
+        {
+            var Episode = Episodes.First();
+
+            Episode.Title = "Introducing Blazor At " + DateTime.Now.ToLongTimeString();
+
+            await EpisodeManager.UpdateEpisode(Episode);
+            await LoadEpisodes();
+        }
+    }
+
+    async Task AddEpisodeButtonClicked()
+    {
+        var allEpisodes = await EpisodeManager.GetAllEpisodes();
+        var Episode = new Episode()
+        {
+            Id = allEpisodes.Count + 1,
+            Title = "Created at " + DateTime.Now.ToLongTimeString(),
+            Description = "",
+            Duration = "",
+            PublishDate = "",
+            ImageUrl = "",
+            YouTubeUrl = ""
+        };
+        Episode = await EpisodeManager.AddEpisode(Episode);
+        if (Episode.Id != 0)
+        {
+            await LoadEpisodes();
+        }
+    }
+
+    async Task LoadEpisodes()
+    {
+        Episodes = await EpisodeManager.GetAllEpisodes();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadEpisodes();
+    }
+
+}

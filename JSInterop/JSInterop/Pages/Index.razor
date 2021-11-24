@@ -1,0 +1,138 @@
+﻿@page "/"
+@inject IJSRuntime js
+@using System.Text.Json
+
+    <div id="MyBigDiv" style="background-color:antiquewhite;overflow:auto;">
+        <div style="margin:10px;">
+            @DeviceStatus
+            @if (AudioInputDevices != null)
+            {
+                <div>Audio Devices:</div>
+                <select class="form-control">
+                    @foreach (var device in AudioInputDevices)
+                    {
+                        <option value="@device.deviceId">@device.label</option>
+                    }
+                </select>
+            }
+
+            @if (VideoInputDevices != null)
+            {
+                <br />
+                <div>Video Devices:</div>
+                <select class="form-control">
+                    @foreach (var device in VideoInputDevices)
+                    {
+                        <option value="@device.deviceId">@device.label</option>
+                    }
+                </select>
+            }
+        </div>
+        @for (int i = 0; i < 10; i++)
+        {
+            <div style="height:300px;width:300px;margin:100px;background-color:lightcoral;">
+                Element&nbsp;@i.ToString()
+            </div>
+        }
+    </div>
+<div id="FooterDiv" style="height:50px;padding:12px;background-color:white;">
+    Footer
+</div>
+
+@code
+{
+
+    string DeviceStatus = "";
+    List<BrowserMediaDevice> AudioInputDevices;
+    List<BrowserMediaDevice> VideoInputDevices;
+
+    [JSInvokable]
+    public async Task DeviceStatusChanged(string StatusMessage)
+    {
+        DeviceStatus = StatusMessage;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task AvailableDevices(object[] Devices)
+    {
+        foreach (var device in Devices)
+        {
+            string deviceString = device.ToString();
+            var dev = JsonSerializer.Deserialize<BrowserMediaDevice>(deviceString);
+            if (dev.kind == "audioinput")
+            {
+                if (AudioInputDevices == null) AudioInputDevices = new List<BrowserMediaDevice>();
+                if (dev.label.Trim() != "" && dev.deviceId.Trim() != "")
+                {
+                    AudioInputDevices.Add(dev);
+                }
+            }
+            else if (dev.kind == "videoinput")
+            {
+                if (VideoInputDevices == null) VideoInputDevices = new List<BrowserMediaDevice>();
+                if (dev.label.Trim() != "" && dev.deviceId.Trim() != "")
+                {
+                    VideoInputDevices.Add(dev);
+                }
+            }
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task WindowResized(int WindowWidth, int WindowHeight)
+    {
+        // Get div dimensions
+        var TopDivHeight = await js.InvokeAsync<int>("GetElementHeight", "TopDiv");
+        var TopDivWidth = await js.InvokeAsync<int>("GetElementWidth", "TopDiv");
+        var SideBarWidth = await js.InvokeAsync<int>("GetElementWidth", "SideBarDiv");
+        var SideBarHeight = await js.InvokeAsync<int>("GetElementHeight", "SideBarDiv");
+        var footerHeight = await js.InvokeAsync<int>("GetElementHeight", "FooterDiv");
+
+        int top = 0;
+        int left = 0;
+        int width = 0;
+        int height = 0;
+
+        // resize the big div
+        if (TopDivWidth == 0 && TopDivHeight == 0)
+        {
+            // no top div. Assume resized to small screen
+            top = SideBarHeight;
+            width = WindowWidth;
+            left = 0;
+        }
+        else
+        {
+            // normal size
+            top = TopDivHeight;
+            width = WindowWidth - SideBarWidth;
+            left = SideBarWidth;
+        }
+        height = WindowHeight - (top + footerHeight);
+        await js.InvokeVoidAsync("ResizeElementAbsolute", "MyBigDiv", top, left, width, height);
+
+        // place the footer
+        top = WindowHeight - footerHeight;
+        height = footerHeight;
+        await js.InvokeVoidAsync("ResizeElementAbsolute", "FooterDiv", top, left, width, height);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var dotnetHelper = DotNetObjectReference.Create(this);
+        await js.InvokeVoidAsync("EnumerateDevices", dotnetHelper);
+        await js.InvokeVoidAsync("RegisterMyPage", dotnetHelper);
+        await js.InvokeVoidAsync("ForceResize");
+    }
+
+    public class BrowserMediaDevice
+    {
+        public string deviceId { get; set; }
+        public string kind { get; set; }
+        public string label { get; set; }
+        public string groupId { get; set; }
+    }
+
+}

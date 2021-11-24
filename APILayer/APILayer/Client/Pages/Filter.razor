@@ -1,0 +1,44 @@
+﻿@page "/filter"
+@inject IEpisodeDataManager EpisodeManager
+
+@if (Episodes == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <h1>Episodes:</h1>
+    <span>Filter:&nbsp;</span>
+    <input @bind="SearchTitle" @bind:event="oninput" />
+    <br />
+    <br />
+    <ul>
+        @foreach (var episode in FilteredEpisodes)
+        {
+            <li>@episode.Title</li>
+        }
+    </ul>
+}
+
+@code{
+    string SearchTitle = "";
+
+    List<Episode> Episodes;
+
+    List<Episode> FilteredEpisodes => Episodes
+        .Where(i => i.Title.ToLower()
+        .Contains(SearchTitle.ToLower()))
+        .ToList();
+
+    async Task LoadEpisodes()
+    {
+        Episodes = await EpisodeManager.GetAllEpisodes();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadEpisodes();
+    }
+
+}
