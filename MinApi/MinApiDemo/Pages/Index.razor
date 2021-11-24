@@ -1,0 +1,107 @@
+﻿@page "/"
+@using System.Net.Http.Json
+
+@if (Customers.Count > 0)
+{
+    <h2>Customers</h2>
+    <ul>
+        @foreach (var customer in Customers)
+        {
+            <li>
+                <button @onclick="() => EditCustomer(customer)">Edit</button>
+                <button @onclick="() => DeleteCustomer(customer)">Delete</button>
+                @customer.Name (@customer.Email)
+            </li>
+        }
+    </ul>
+
+    @if (CurrentCustomer != null)
+    {
+        <div>
+            Name:
+            <input @bind="CurrentCustomer.Name" />
+            <br />
+            Email:
+            <input @bind="CurrentCustomer.Email" />
+            <button @onclick="UpdateCustomer">Update</button>
+        </div>
+    }
+}
+
+<h2>New Customer:</h2>
+Name:
+<input @bind="Customer.Name" />
+<br />
+Email:
+<input @bind="Customer.Email" />
+<button @onclick="SendNewCustomer">Submit</button>
+
+@code
+{
+    string baseUrl = "https://localhost:7083/";
+    List<Customer> Customers = new List<Customer>();
+    Customer Customer = new Customer();
+    Customer CurrentCustomer;
+
+    async Task EditCustomer(Customer customer)
+    {
+        CurrentCustomer = customer;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task UpdateCustomer()
+    {
+        using (var http = new HttpClient())
+        {
+            string url = $"{baseUrl}customer";
+            await http.PutAsJsonAsync(url, CurrentCustomer);
+        }
+        await GetCustomers();
+    }
+    
+
+    async Task DeleteCustomer(Customer customer)
+    {
+        using (var http = new HttpClient())
+        {
+            string url = $"{baseUrl}customer?Id={customer.Id}";
+            await http.DeleteAsync(url);
+        }
+        await GetCustomers();
+    }
+
+    async Task SendNewCustomer()
+    {
+        using (var http = new HttpClient())
+        {
+            string url = $"{baseUrl}customer";
+            Customer.Id = GetNextId();
+            await http.PostAsJsonAsync(url, Customer);
+        }
+        await GetCustomers();
+    }
+
+    int GetNextId()
+    {
+        return (from x in Customers select x.Id).Max() + 1;
+    }
+
+    async Task GetCustomers()
+    {
+        using (var http = new HttpClient())
+        {
+            string url = $"{baseUrl}customers";
+            var list = await http.GetFromJsonAsync<List<Customer>>(url);
+            if (list != null)
+            {
+                Customers.Clear();
+                Customers.AddRange(list);
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetCustomers();
+    }
+}

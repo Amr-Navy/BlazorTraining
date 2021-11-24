@@ -1,0 +1,144 @@
+﻿@page "/fetchdata"
+
+@if (Employees.Count > 0)
+{
+    <h2>Chinook Employees</h2>
+    <select @onchange="EmployeeSelected" size="10" style="width:100%;">
+        @foreach (var employee in Employees)
+        {
+            if (SelectedEmployee != null && employee.EmployeeId == SelectedEmployee.EmployeeId)
+            {
+                <option selected value="@employee.EmployeeId">@employee.FirstName&nbsp;@employee.LastName</option>
+            }
+            else
+            {
+                <option value="@employee.EmployeeId">@employee.FirstName&nbsp;@employee.LastName</option>
+            }
+        }
+    </select>
+    <br />
+    <br />
+
+    @if (CanIAddCarl)
+    {
+        <button @onclick="AddEmployee">Add Carl</button>
+        <br />
+        <br />
+    }
+
+    if (SelectedEmployee != null)
+    {
+        <div>
+            Address: @SelectedEmployee.Address
+        </div>
+        <br />
+
+        <button @onclick="DeleteEmployee">Delete @SelectedEmployee.FirstName  @SelectedEmployee.LastName</button>
+        <br />
+        <br />
+
+        <button @onclick="UpdateEmployee">Update @SelectedEmployee.FirstName  @SelectedEmployee.LastName</button>
+        <br />
+        <br />
+    }
+
+    <span style="color:red;">@ErrorMessage</span>
+}
+else
+{
+    <span>Loading...</span>
+}
+
+@code
+{
+    List<Employee> Employees { get; set; } = new List<Employee>();
+    Employee SelectedEmployee;
+    string ErrorMessage = "";
+    string baseUrl = "https://localhost:7083/";
+
+    bool CanIAddCarl
+    {
+        get
+        {
+            var carl = (from x in Employees
+                        where x.FirstName == "Carl"
+                        && x.LastName == "Franklin"
+                        select x).FirstOrDefault();
+            return (carl == null);
+        }
+    }
+
+    async Task EmployeeSelected(ChangeEventArgs args)
+    {
+        await Task.Delay(0);
+        var Id = Convert.ToInt32(args.Value.ToString());
+        SelectedEmployee = (from x in Employees where x.EmployeeId == Id select x).FirstOrDefault();
+    }
+
+    async Task UpdateEmployee()
+    {
+        ErrorMessage = "";
+        SelectedEmployee.Address = $"Updated at {DateTime.Now.ToString()}";
+        using (var http = new HttpClient())
+        {
+            string url = $"{baseUrl}employees";
+            await http.PutAsJsonAsync(url, SelectedEmployee);
+        }
+        await LoadAllEmployees();
+    }
+
+    async Task AddEmployee()
+    {
+        ErrorMessage = "";
+        var employee = new Employee()
+        {
+            Address = "Nowhere Street",
+            City = "Hooverville",
+            Country = "USA",
+            Email = "carl@somewhere.com",
+            Fax = "888-555-1212",
+            FirstName = "Carl",
+            LastName = "Franklin",
+            Phone = "888-555-1212",
+            PostalCode = "ABCDE",
+            State = "XX"
+        };
+        using (var http = new HttpClient())
+        {
+            string url = $"{baseUrl}employees";
+            await http.PostAsJsonAsync(url, employee);
+        }
+        await LoadAllEmployees();
+    }
+
+    async Task DeleteEmployee()
+    {
+        ErrorMessage = "";
+        using (var http = new HttpClient())
+        {
+            string url = $"{baseUrl}employees?EmployeeId={SelectedEmployee.EmployeeId}";
+            await http.DeleteAsync(url);
+        }
+        await LoadAllEmployees();
+    }
+
+    async Task LoadAllEmployees()
+    {
+        using (var http = new HttpClient())
+        {
+            string url = $"{baseUrl}employees";
+            var result = await http.GetFromJsonAsync<List<Employee>>(url);
+            if (result != null)
+            {
+                Employees.Clear();
+                Employees.AddRange(result);
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllEmployees();
+    }
+
+}
